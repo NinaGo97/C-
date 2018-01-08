@@ -7,15 +7,12 @@ using namespace std;
 
 int main()
 {
-
-    fstream ausgabe("neueDatei.xml"); //neue Datei erstellen
-    fstream eingabe; // xml Datei
-
     char zeichen;
     char puffer [100]; //Zwischenspeicher
     int zaehler;
     char id[4];
-    char test ='a'; // Test, dass an die richtige Stelle was geschrieben wird in der neuen Datei
+    string ausgabename;
+
     enum zustand {start, iderwarte, idverarbeite,idend,einsetzen};
     enum zustand zustand = start;
 
@@ -24,85 +21,102 @@ int main()
     char zeichentxt;
     char puffertxt [100]; //Zwischenspeicher
     int zaehlertxt;
-    char idtxt[4][50];  //ID's der Txt Datei werden hier reingeschrieben
+    char idtxt[50][4];  //ID's der Txt Datei werden hier reingeschrieben     char x [Anzahl der Zeilen][Max Zeilenlänge]
     int idzaehlertxt = 0;
-    char birthtxt[15][50]; //Geb.Datum reingeschrieben
     int birthzaehlertxt=0;
 
-    enum zustandtxt {idvontxt, gebtxt};
-    enum zustandtxt zustandtxt = idvontxt;
-   // char aktion; //Eingabe ob suchen oder konvertieren
-    //enum zustand{Tagname,ID, Vorname, Nachname};
+    char daytxt[50][4];
+    char monthtxt[50][4];
+    char yeartxt[50][8];
 
+    bool hotfix = false; // für > klammer nach persname
 
+    enum zustandtxt {erwarteidtxt, erwartetagtxt, erwartemonattxt, erwartejahrtxt};
+    enum zustandtxt zustandtxt = erwarteidtxt;
+    char aktion; //Eingabe ob suchen oder konvertieren
 
-    //Einlesen XML
-    eingabe.open("nameList1.xml");
-
-    //Kontrolle ob einlesen funktionert
-    if(!eingabe) cout << "error" << endl;
-                         else cout << "jaaaaa"<< endl;
 
     //Einlesen txt
     eingabetxt.open("nameList2.txt");
 
     //Kontrolle ob einlesen funktionert
     if(!eingabetxt) cout << "errortxt" << endl;
-                         else cout << "jaaaaatxt"<< endl;
+    else cout << "jaaaaatxt"<< endl;
+    cout<< "Wollen Sie suchen[s] oder konvertieren[k]?"<< endl;
+    cin >> aktion;
 
-    //Einlesen neue Datei
-    ausgabe.open("neueDatei.xml",ios::in | ios::out | ios::trunc);
+    if (aktion=='k'){
 
-    //Kontrolle ob einlesen funktionert
-    if(!ausgabe) cout << "errorausgabe" << endl;
-                         else cout << "jaaaaaausgabe"<< endl;
-
+    cout << "Wie soll die neue Datei heissen? Bitte mit .xml am Schluss" << endl;
+    cin >> ausgabename;
 
 
     //txt Datei unterscheidet zwischen ID und Geb
-     for(eingabetxt.get(zeichentxt);!eingabetxt.eof();eingabetxt.get(zeichentxt)){
+     for(eingabetxt.get(zeichentxt);!eingabetxt.eof();eingabetxt.get(zeichentxt)) {
          switch (zeichentxt) {
-         case ' ':
 
-             puffertxt[zaehlertxt]='\0';
-             zaehlertxt= 0;
-
-                if (zustandtxt == idvontxt){
-                    strcpy(idtxt[idzaehlertxt],puffertxt);
-                    cout << idtxt[idzaehlertxt]<< endl;
-                    idzaehlertxt ++;
-                    zustandtxt = gebtxt;
-                }
+         case ' ': //ID
+            puffertxt[zaehlertxt]='\0';
+            zaehlertxt= 0;
+            strcpy(idtxt[idzaehlertxt],puffertxt);
+            idzaehlertxt ++;
+            zustandtxt = erwartetagtxt;
 
             break;
 
-         case '\n':
+         case '\n': //Jahr
              puffertxt[zaehlertxt]='\0';
              zaehlertxt=0;
-             if (zustandtxt == gebtxt){
-                 strcpy(birthtxt[birthzaehlertxt],puffertxt);
-             cout << birthtxt[birthzaehlertxt] << endl;
-             }
-
-
-
-                 zustandtxt = idvontxt;
+             strcpy(yeartxt[birthzaehlertxt],puffertxt);
+             birthzaehlertxt++;
+             zustandtxt = erwarteidtxt;
 
              break;
 
+         case '.': //Monat und Tag
+             puffertxt[zaehlertxt]='\0';
+             zaehlertxt=0;
 
-         //  \n (zeilenumbruch) Dann kommt eine ID
-         // nach ' ' kommt Geb.
+             if (zustandtxt==erwartetagtxt){
+                 strcpy(daytxt[birthzaehlertxt],puffertxt);
+                 zustandtxt=erwartemonattxt;
+
+             }else if(zustandtxt==erwartemonattxt){
+                 strcpy(monthtxt[birthzaehlertxt],puffertxt);
+                 zustandtxt = erwartejahrtxt;
+             }
+
+             break;
+
          default:
              puffertxt[zaehlertxt]=zeichentxt;
              zaehlertxt++;
-
              break;
          }
 
+     }
 
-     };
+    eingabetxt.close();
 
+
+    fstream eingabe; // xml Datei
+
+    //Einlesen XML
+    eingabe.open("nameList1.xml");
+
+    //Kontrolle ob einlesen funktionert
+    if(!eingabe) cout << "erroreingabe" << endl;
+    else cout << "jaaaaaeingabe"<< endl;
+
+
+    fstream ausgabe(ausgabename); //neue Datei erstellen nachdem nach Name gefragt wird
+
+    //Einlesen neue Datei
+    ausgabe.open(ausgabename,ios::in | ios::out | ios::trunc);
+
+    //Kontrolle ob einlesen funktionert
+    if(!ausgabe) cout << "errorausgabe" << endl;
+    else cout << "jaaaaaausgabe"<< endl;
 
 
     // XMl Datei - Wo ist die Id und wo muss das Geb.Datum hingeschrieben werden
@@ -113,61 +127,54 @@ int main()
           {
 
        case '<':
-
-
            puffer[zaehler]= '\0';
            zaehler = 0;
            ausgabe << zeichen;
+
           break;
 
        case '>':
-
-
+           hotfix = true;
            puffer[zaehler]= '\0';
            zaehler = 0;
 
            if(!strcmp(puffer,"/persName")){
-            ausgabe << test << endl;
 
-           /*if(id==idtxt[idzaehlertxt]){
-            ausgabe << birthtxt << endl;
+                int k = 0; // zum durchzählen der ID's von idtxt
+                for(k=0; k<=idzaehlertxt; k++) {
+                    if(!strcmp(id,idtxt[k])){
+                        ausgabe << zeichen;
+                        ausgabe << endl << "<birth when=\"" << yeartxt[k] << "-" << monthtxt[k] << "-" << daytxt[k] << "\"></birth>";
+                        hotfix = false; // damit nicht noch ein > eingefügt wird
+                      }
+                 }
+           }
 
-
-            };*/
-
-
-
-
-
-           };
-
-           ausgabe << zeichen;
+            if (!hotfix==false){
+           ausgabe << zeichen; // > wird eingefügt
+            }
 
           break;
 
        case '=':
            zustand= iderwarte;
-
            ausgabe << zeichen;
 
            break;
-
 
        case '"':
            puffer[zaehler]= '\0';
            zaehler = 0;
            if (zustand == iderwarte){
-             zustand= idverarbeite;
+              zustand= idverarbeite;
 
            }
            else if(zustand==idverarbeite){
-             //zustand= idend;
              strcpy(id,puffer);
-
            }
 
-
            ausgabe << zeichen;
+
            break;
 
 
@@ -178,15 +185,17 @@ int main()
            break;
 
        }
-
-
-
-
 }
+
      //Dateien werden geschlossen
      ausgabe.close();
      eingabe.close();
-     eingabetxt.close();
+    } else {
+        cout << "das ist leider momentan nicht verfügbar"<< endl;
+    }
+
+
+
     return 0;
 }
 
@@ -226,19 +235,6 @@ int main()
           break;
         }
 
-    cout<< "Wollen Sie suchen[s] oder konvertieren[k]?"<< endl;
-    cin >> aktion;
-    switch (aktion) {
-    case 's':
 
-        break;
-
-    case 'k':
-
-        break;
-    default:
-
-        cout << "Was meinen Sie mit " << aktion  << "?" << endl;
-        break;
     }
 */
